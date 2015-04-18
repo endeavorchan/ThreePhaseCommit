@@ -1,5 +1,5 @@
 #include "threepc.h"
-//////////////////////////////////////////////////////////
+////////////////////////////
 // ./commond -t trax.txt(master read) -h hostfile.txt -m masterid -p portnum
 //     0     1   2                    3   4           5     6     7    8    
 #define TRY 4
