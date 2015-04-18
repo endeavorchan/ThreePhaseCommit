@@ -14,7 +14,7 @@
 #include <fstream>
 #include <assert.h>
 #include <map>
-
+#include <vector>
 #define MAXBUFLEN 1024
 using namespace std;
 typedef map<int, string> IPList;

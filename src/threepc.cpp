@@ -287,7 +287,7 @@ void ThreePC::doSlave() {   ////////////////////////////
 				if (myid > msg->senderid) { // Then we need to send iamalive
 					char *alive = mkMsg(ALIVE, 9999, myid);
 					sendMessage(ALIVE, alive, msg->senderid);
-					deleteMsg(ALIVE, msg->senderid);
+					deleteMsg(ALIVE, alive);
 
 					// starts new election
 					char *inquiry = mkMsg(INQUIRY, 9999, myid);
@@ -324,8 +324,9 @@ void ThreePC::doSlave() {   ////////////////////////////
 					sendAllMsg(NONCOMMITTABLE, non);
 					deleteMsg(NONCOMMITTABLE, non);
 				}
-				sendAllMsg(); // TO-DO  ????
-				doMaster();
+				// TO-DO
+				//sendAllMsg();
+				//doMaster();
 			}
 		}
 

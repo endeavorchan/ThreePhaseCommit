@@ -97,6 +97,7 @@ public:
 	Tag *tag;// used to record reply status
 	int value;
 	// variables used by termination protocol
+	bool is_candidate;
 	bool isTermination;
 	int termi_status[];
 
@@ -135,6 +136,7 @@ public:
 		state = INIT;
 		tag = new Tag(size, myid); // used to record reply status
 		isTermination = false;
+		is_candidate = false;
 		for (int i=0; i<this->size; i++) {
 			// TO-DO
 		}
