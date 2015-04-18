@@ -24,11 +24,13 @@ void ThreePC::doMaster() {
 	struct timeval timeout = { 2, 0 };  // time for time out
 
 	while (true) {
-		FD_ZERO(&fdset);
-		FD_SET(sockfd, &fdset);
-		select(sockfd + 1, &fdset, NULL, NULL, &timeout);
 		if (isTermination == false) { // normal 3pc protocol
-			if (ongoing == false && value < AllneedtoSend && state == INIT) { // if sending queue is not empty and no outstanding msg pick one and send to all
+			if (ongoing == false && state == INIT) { // if sending queue is not empty and no outstanding msg pick one and send to all
+				char t = 0;
+				cin >> t;
+				if (t != 'y') {
+					continue;
+				}
 				tag->setAlltoFalse();
 				times = TRY;
 				ongoing = true;
@@ -39,6 +41,9 @@ void ThreePC::doMaster() {
 				state = WAIT;
 				deleteMsg(CANCMT, cancomit);
 			}
+			FD_ZERO(&fdset);
+			FD_SET(sockfd, &fdset);
+			select(sockfd + 1, &fdset, NULL, NULL, &timeout);
 			if (FD_ISSET(sockfd, &fdset)) {
 				char *p = NULL;
 				int type = recvMessage(p);
@@ -204,6 +209,9 @@ void ThreePC::doMaster() {
 				}
 			}
 		} else {
+			FD_ZERO(&fdset);
+			FD_SET(sockfd, &fdset);
+			select(sockfd + 1, &fdset, NULL, NULL, &timeout);
 			if (FD_ISSET(sockfd, &fdset)) {
 				char *p = NULL;
 				int type = recvMessage(p);
@@ -241,7 +249,7 @@ void ThreePC::doSlave() {   ////////////////////////////
 				assert(value <= (int )msg->val); // this check may involve problem
 				value = msg->val; // update value;
 				char *reply = NULL;
-				cout << value << "ssize  " << strategy.size() << endl;
+				//cout << value << "ssize  " << strategy.size() << endl;
 				assert(value < strategy.size()); ////////////++++++++
 
 				if (strategy[value]) {  /////////++++++++++++

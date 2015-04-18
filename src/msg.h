@@ -18,50 +18,69 @@
 #define MAXBUFLEN 1024
 using namespace std;
 typedef map<int, string> IPList;
-enum MsgType {CANCMT = 1, REPLY, PRECMT, ACK, DOCMT, HAVECMTED, ABORT, ABORTACK, ALIVE, VICTORY, INQUIRY, COMMITTABLE, NONCOMMITTABLE, TERMIABORT};
-enum {A, C};
-enum {S, R};
+enum MsgType {
+	CANCMT = 1,
+	REPLY,
+	PRECMT,
+	ACK,
+	DOCMT,
+	HAVECMTED,
+	ABORT,
+	ABORTACK,
+	ALIVE,
+	VICTORY,
+	INQUIRY,
+	COMMITTABLE,
+	NONCOMMITTABLE,
+	TERMIABORT
+};
+enum {
+	A, C
+};
+enum {
+	S, R
+};
 
 typedef struct {
 	MsgType type;
 	uint32_t val;
 	uint32_t senderid;
 
-} Cancmt ;
+} Cancmt;
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 	uint32_t isyes; // 1 for yes, 0 for no
-	
+
 } Reply;
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 
 } PreCommit;
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 
 } Ack;
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 
 } Docommit;
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 
 } HaveCommitted;
 
@@ -92,13 +111,13 @@ typedef struct {
 class MSG {
 public:
 	int sockfd; // socked number
-	uint16_t port; // port number
-	uint32_t ip; // ip number
-	char myipstr[INET_ADDRSTRLEN]; // my ip in string format
-	IPList iplist; // all the ip stored in this map
-	int size; // number of hosts in the system
-	int myid; // my id
-	char sderipstr[INET_ADDRSTRLEN]; // sender's ip in string format
+	uint16_t port;// port number
+	uint32_t ip;// ip number
+	char myipstr[INET_ADDRSTRLEN];// my ip in string format
+	IPList iplist;// all the ip stored in this map
+	int size;// number of hosts in the system
+	int myid;// my id
+	char sderipstr[INET_ADDRSTRLEN];// sender's ip in string format
 	MSG() {
 
 	}
@@ -112,26 +131,26 @@ public:
 			strncpy(temp, inet_ntoa(*(struct in_addr*)&my_ip), INET_ADDRSTRLEN);
 
 			if (!strncmp(temp, s, INET_ADDRSTRLEN))
-				return pos->first;
+			return pos->first;
 		}
 		return -1;
 	}
 
 	void sendMessage(int type, char *p, int dest_id);
 	void sendAllMsg(int type, char *p);
-	int  recvMessage(char *&pmsg);
+	int recvMessage(char *&pmsg);
 	void setmyPort(char *portstr) {
 		uint16_t portnum = atoi(portstr);
 		this->port = htons(portnum);
 	}
 	void setmyIp() {
-   		char name[256];
-  		gethostname(name, 255);
-  		struct hostent *host = gethostbyname(name);
-  		//cout << "my host name is "<< name << endl;
-  		memcpy(&ip, host->h_addr_list[0], host->h_length);
-  		strncpy(myipstr, inet_ntoa(*(struct in_addr*)&ip), INET_ADDRSTRLEN);
-  		//cout << "my ip is " << ipstr <<endl;
+		char name[256];
+		gethostname(name, 255);
+		struct hostent *host = gethostbyname(name);
+		//cout << "my host name is "<< name << endl;
+		memcpy(&ip, host->h_addr_list[0], host->h_length);
+		strncpy(myipstr, inet_ntoa(*(struct in_addr*)&ip), INET_ADDRSTRLEN);
+		//cout << "my ip is " << ipstr <<endl;
 
 	}
 
@@ -261,13 +280,12 @@ public:
 	}
 
 	/* for test */
-
-	void printMsg(int sr, char *msg) {
+	void printMsg(int sr, char *msg, int dest = -1) {
 		uint32_t *ptype = (uint32_t *)msg;
 		if (sr == R) {
 			cout << "RRRRR  ";
 		} else if (sr == S) {
-			cout << "SSSSS  ";
+			cout << "SSSSS  dest:" << dest << " ";
 		}
 		switch (*ptype) {
 			case CANCMT: {
@@ -309,8 +327,8 @@ public:
 				AbortAck *p = (AbortAck *)msg;
 				cout << "ABORTACK val: " << p->val << " senderid: " << p->senderid << endl;
 				break;
-			}
-			default: {
+
+			}default: {
 				cout << "msg error " << endl;
 				exit(1);
 			}
@@ -368,21 +386,11 @@ public:
 				AbortAck *p = (AbortAck *)msg;
 				delete p;
 				break;
-			} default: {
+			}default: {
 				cout << "msg error can not delete " << endl;
 				exit(1);
 			}
 		}
 	}
-
 };
-
-
-
-
-
-
-
-
-
 #endif
