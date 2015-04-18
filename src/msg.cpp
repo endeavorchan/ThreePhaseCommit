@@ -37,7 +37,7 @@ MSG::MSG(char *msgport, char *hostfile){
 
 void MSG::sendAllMsg(int type, char *p) {
 	for (int i = 0; i < size; ++i) {
-		if (i != myid){
+		if (i != myid && !tag->isDown(i)){
 			sendMessage(type, p, i);
 		}
 	}

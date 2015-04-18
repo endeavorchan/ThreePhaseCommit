@@ -132,14 +132,10 @@ void ThreePC::doMaster() {
 						}
 						deleteMsg(CANCMT, cancomit);
 					} else {  // time out
+						tag->setsitedown();
 						char *abrt = mkMsg(ABORT, value, myid);
-						tag->filpAll(); // only send to those that are still alive
-						int *ids = tag->getUnsetId();
-						for (int i = 0; i < size; ++i) {
-							if (ids[i] != -1) {
-								sendMessage(ABORT, abrt, ids[i]);
-							}
-						}
+						tag->setAlltoFalse();
+						sendAllMsg(ABORT, abrt);
 						state = ABRT;   // to do
 						deleteMsg(ABRT, abrt);
 						times = TRY;
@@ -158,13 +154,9 @@ void ThreePC::doMaster() {
 						deleteMsg(PRECMT, precomit);
 					} else {  // time out
 						char *abrt = mkMsg(ABORT, value, myid);
-						tag->filpAll(); // only send to those that are still alive
-						int *ids = tag->getUnsetId();
-						for (int i = 0; i < size; ++i) {
-							if (ids[i] != -1) {
-								sendMessage(ABORT, abrt, ids[i]);
-							}
-						}
+						tag->setsitedown();
+						tag->setAlltoFalse();
+						sendAllMsg(ABORT, abrt);
 						state = ABRT;  // to do
 						deleteMsg(ABRT, abrt);
 						times = TRY;
@@ -183,6 +175,7 @@ void ThreePC::doMaster() {
 						}
 						deleteMsg(DOCMT, docomit);
 					} else {  // different
+						tag->setsitedown();
 						ongoing = false;
 						// do commit
 						doFinal(C, value);
@@ -200,6 +193,7 @@ void ThreePC::doMaster() {
 						}
 						deleteMsg(ABORT, abrt);
 					} else {
+						tag->setsitedown();
 						ongoing = false;
 						// do abort
 						doFinal(A, value);

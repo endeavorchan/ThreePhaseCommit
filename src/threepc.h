@@ -34,67 +34,11 @@ enum State {
 	INIT, WAIT, ABRT, CMT, PREP
 };
 
-class Tag {
-	int size;
-	bool *tag;
-	int *ids;
-	int myid;
-public:
-	Tag() {
-	}
-	Tag(int size, int myid) {
-		this->size = size;
-		tag = new bool[size];
-		ids = new int[size];
-		for (int i = 0; i < size; ++i) {
-			tag[i] = false;
-			ids[i] = -1;
-		}
-		this->myid = myid;
-	}
-	void filpAll() {
-		for (int i = 0; i < size; ++i) {
-			tag[i] = !tag[i];
-		}
-	}
-	void setAlltoFalse() {
-		for (int i = 0; i < size; ++i) {
-			tag[i] = false;
-		}
-	}
-	int *getUnsetId() {
-		for (int i = 0; i < size; ++i) {
-			ids[i] = -1;
-			if (i != myid && tag[i] == false) {
-				ids[i] = i;
-			}
-		}
-		return ids;
-	}
-	void setTrue(int pos) {
-		if (pos >= size) {
-			cout << "set bit out of bound exit" << endl;
-			exit(1);
-		} else {
-			tag[pos] = true;
-		}
-	}
-
-	bool checkAllTrue() {
-		for (int i = 0; i < size; ++i) {
-			if (i != myid && tag[i] == false)
-			return false;
-		}
-		return true;
-	}
-};
-
 class ThreePC: public MSG {
 	State state;
 	int masterid;
 	vector<int> strategy;    //++++++
 public:
-	Tag *tag;// used to record reply status
 	int value;
 	// variables used by termination protocol
 	bool is_candidate;
