@@ -1,5 +1,5 @@
 #include "msg.h"
-	
+
 MSG::MSG(char *msgport, char *hostfile){
 	//cout << "initial MSG " << endl;
 
@@ -35,9 +35,9 @@ MSG::MSG(char *msgport, char *hostfile){
 	myid = getidbyIp(myipstr);
 }
 
-void MSG::sendAllMsg(int type, char *p) {
+void MSG::sendAllMsg(int type, char *p, Tag *tag) {  // only sent to sites which are not down and not itself
 	for (int i = 0; i < size; ++i) {
-		if (i != myid) {
+		if (i != myid && !tag->isDown(i)) {
 			sendMessage(type, p, i);
 		}
 	}

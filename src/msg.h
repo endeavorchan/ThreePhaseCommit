@@ -25,6 +25,8 @@ enum MsgType {CANCMT = 1, REPLY, PRECMT, ACK, DOCMT, HAVECMTED, ABORT, ABORTACK,
 enum {A, C};
 enum {S, R};
 
+
+
 typedef struct {
 	MsgType type;
 	uint32_t val;	
@@ -80,6 +82,93 @@ typedef struct {
 	uint32_t senderid;
 } AbortAck;
 
+class Tag {
+	int size;
+	bool *tag;
+	int *ids;
+	int myid;
+	int *sessionv;
+public:
+	Tag() {
+	}
+	Tag(int size, int myid) {
+		this->size = size;
+		tag = new bool[size];
+		ids = new int[size];
+		for (int i = 0; i < size; ++i) {
+			tag[i] = false;
+			ids[i] = -1;
+		}
+		this->myid = myid;
+		sessionv = new int[size];
+		for (int i = 0; i < size; ++i) {
+			sessionv[i] = 1;  // 1 indicate the corresponding site is on
+		}
+	}
+	void setsitedown() {
+		for (int i = 0; i < size; ++i) {
+			if (ids[i] != -1) {
+				siteDown(i);
+			}
+		}
+	}
+	void siteDown(int id) {
+		sessionv[id] = 0;
+		setTrue(id);
+	}
+	bool isDown(int id) {
+		if (sessionv[id] == 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	/* if need to set/reset tag,  the tag of the crashed site is always true */
+	void filpAll() {
+		for (int i = 0; i < size; ++i) {
+			tag[i] = !tag[i];
+			if (sessionv[i] == 0) {
+				setTrue(i);
+			}
+		}		
+
+	}
+	void setAlltoFalse() {
+		for (int i = 0; i < size; ++i) {
+			tag[i] = false;
+			if (sessionv[i] == 0) {
+				setTrue(i);
+			}
+		}
+	}
+	int *getUnsetId() {  // get the id of the site which hasn't replied yet (re transmit)
+		for (int i = 0; i < size; ++i) {
+			ids[i] = -1;
+			if (i != myid && tag[i] == false) {
+				ids[i] = i;
+			}
+		}
+		return ids;
+	}
+	void setTrue(int pos) {   
+		if (pos >= size) {
+			cout << "set bit out of bound exit" << endl;
+			exit(1);
+		} else {
+			tag[pos] = true;
+		}
+	}
+
+	bool checkAllTrue() {
+		for (int i = 0; i < size; ++i) {
+			if (i != myid && tag[i] == false)
+				return false;
+		}
+		return true;
+	}
+};
+
+
 class MSG {
 public:
 	int sockfd; // socked number
@@ -110,7 +199,7 @@ public:
 	}
 
 	void sendMessage(int type, char *p, int dest_id);
-	void sendAllMsg(int type, char *p);
+	void sendAllMsg(int type, char *p, Tag *tag);
 	int  recvMessage(char *&pmsg);
 	void setmyPort(char *portstr) {
 		uint16_t portnum = atoi(portstr);
