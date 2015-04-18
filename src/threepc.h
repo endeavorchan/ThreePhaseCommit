@@ -30,7 +30,9 @@
 #include "msg.h"
 
 using namespace std;
-enum State {INIT, WAIT, ABRT, CMT, PREP};
+enum State {
+	INIT, WAIT, ABRT, CMT, PREP
+};
 
 class Tag {
 	int size;
@@ -81,23 +83,29 @@ public:
 	bool checkAllTrue() {
 		for (int i = 0; i < size; ++i) {
 			if (i != myid && tag[i] == false)
-				return false;
+			return false;
 		}
 		return true;
 	}
 };
-
 
 class ThreePC: public MSG {
 	State state;
 	int masterid;
 	vector<int> strategy;    //++++++
 public:
+	Tag *tag;// used to record reply status
+	int value;
+	// variables used by termination protocol
+	bool is_candidate;
+	bool isTermination;
+	int termi_status[];
+
 	ThreePC() {
-		state = INIT;
+		init();
 	}
 	ThreePC(char *msgport, char *sfile, char *hostfile, int masterid): MSG(msgport, hostfile) { /////////++++++++
-		state = INIT;
+		init();
 		this->masterid = masterid;
 		string fname = sfile;
 		ifstream infile(fname.c_str(),ios::in);
@@ -123,7 +131,16 @@ public:
 		}
 	}
 
-
+	void init() {
+		value = 0;
+		state = INIT;
+		tag = new Tag(size, myid); // used to record reply status
+		isTermination = false;
+		is_candidate = false;
+		for (int i=0; i<this->size; i++) {
+			// TO-DO
+		}
+	}
 
 	void mainLoop();
 
@@ -133,28 +150,28 @@ public:
 
 	void redundentReply(int type, int val, bool isyes) {
 		int indicate = 0;
-		if (isyes) 
-			indicate = 1;
+		if (isyes)
+		indicate = 1;
 		char *msg = NULL;
 		int sendtype = -1;
 		switch(type) {
-			case CANCMT:{
+			case CANCMT: {
 				sendtype = REPLY;
 				msg = mkMsg(REPLY, val, myid, indicate);
 				break;
-			} 
-			case PRECMT:{
+			}
+			case PRECMT: {
 				sendtype = ACK;
 				msg = mkMsg(ACK, val, myid);
 				break;
 			}
-			case DOCMT:{
+			case DOCMT: {
 				sendtype = HAVECMTED;
 				msg = mkMsg(HAVECMTED, val, myid);
 				break;
 
 			}
-			case ABORT:{
+			case ABORT: {
 				sendtype = ABORTACK;
 				msg = mkMsg(ABORTACK, val, myid);
 				break;
@@ -170,23 +187,5 @@ public:
 	}
 };
 
-
 #endif 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

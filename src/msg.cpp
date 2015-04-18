@@ -37,9 +37,7 @@ MSG::MSG(char *msgport, char *hostfile){
 
 void MSG::sendAllMsg(int type, char *p) {
 	for (int i = 0; i < size; ++i) {
-		if (i != myid) {
-			sendMessage(type, p, i);
-		}
+		sendMessage(type, p, i);
 	}
 }
 
@@ -58,7 +56,6 @@ void MSG::sendMessage(int type, char *p, int dest_id){
   	saddr.sin_addr.s_addr = dest_ip;
   	saddr.sin_port = port;
   	//cout << "sending port is " << myport << endl;
-	printMsg(S, p, dest_id);
   	int datasize = 0;
   	if (type == CANCMT) {
   		datasize = sizeof(Cancmt);
@@ -125,7 +122,7 @@ int  MSG::recvMessage(char *&pmsg){
   	}
 
 	strncpy(sderipstr, inet_ntoa(addr.sin_addr), INET_ADDRSTRLEN);   // get the ip addr of the process who sent the msg not needed
-	
+
 	uint32_t *ptype = (uint32_t *)buf;
 	pmsg = (char *)buf;
 	printMsg(R, pmsg);

@@ -13,22 +13,19 @@
 #include <iostream>
 #include <fstream>
 #include <assert.h>
-#include <time.h>       /* time */
-#include <math.h>
 #include <map>
 #include <vector>
-
 #define MAXBUFLEN 1024
 using namespace std;
 typedef map<int, string> IPList;
-enum MsgType {CANCMT = 1, REPLY, PRECMT, ACK, DOCMT, HAVECMTED, ABORT, ABORTACK, /* client request */REQST};
+enum MsgType {CANCMT = 1, REPLY, PRECMT, ACK, DOCMT, HAVECMTED, ABORT, ABORTACK, ALIVE, VICTORY, INQUIRY, COMMITTABLE, NONCOMMITTABLE, TERMIABORT};
 enum {A, C};
 enum {S, R};
 
 typedef struct {
 	MsgType type;
-	uint32_t val;	
-	uint32_t senderid;	
+	uint32_t val;
+	uint32_t senderid;
 
 } Cancmt ;
 
@@ -80,6 +77,18 @@ typedef struct {
 	uint32_t senderid;
 } AbortAck;
 
+typedef struct {
+	MsgType type;
+	uint32_t val;
+	uint32_t senderid;
+} Election;
+
+typedef struct {
+	MsgType type;
+	uint32_t val;
+	uint32_t senderid;
+} Termination;
+
 class MSG {
 public:
 	int sockfd; // socked number
@@ -90,7 +99,6 @@ public:
 	int size; // number of hosts in the system
 	int myid; // my id
 	char sderipstr[INET_ADDRSTRLEN]; // sender's ip in string format
-	
 	MSG() {
 
 	}
@@ -186,7 +194,6 @@ public:
 				msg->senderid = senderid;
 				ret = (char *)msg;
 				break;
-
 			}
 			case ABORTACK: {
 				AbortAck *msg = new AbortAck;
@@ -195,8 +202,56 @@ public:
 				msg->senderid = senderid;
 				ret = (char *)msg;
 				break;
-
-			} default: {
+			}
+			case ALIVE: {
+				Election *msg = new Election;
+				msg->type = ALIVE;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case VICTORY: {
+				Election *msg = new Election;
+				msg->type = VICTORY;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case INQUIRY: {
+				Election *msg = new Election;
+				msg->type = INQUIRY;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case COMMITTABLE: {
+				Termination *msg = new Termination;
+				msg->type = COMMITTABLE;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case NONCOMMITTABLE: {
+				Termination *msg = new Termination;
+				msg->type = NONCOMMITTABLE;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case TERMIABORT: {
+				Termination *msg = new Termination;
+				msg->type = TERMIABORT;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			default: {
 				cout << "wrong type" << endl;
 				exit(1);
 			}
@@ -207,12 +262,12 @@ public:
 
 	/* for test */
 
-	void printMsg(int sr, char *msg, int dest = -1) {
+	void printMsg(int sr, char *msg) {
 		uint32_t *ptype = (uint32_t *)msg;
 		if (sr == R) {
 			cout << "RRRRR  ";
 		} else if (sr == S) {
-			cout << "SSSSS  dest:" << dest << " ";
+			cout << "SSSSS  ";
 		}
 		switch (*ptype) {
 			case CANCMT: {
@@ -254,8 +309,8 @@ public:
 				AbortAck *p = (AbortAck *)msg;
 				cout << "ABORTACK val: " << p->val << " senderid: " << p->senderid << endl;
 				break;
-
-			} default: {
+			}
+			default: {
 				cout << "msg error " << endl;
 				exit(1);
 			}
