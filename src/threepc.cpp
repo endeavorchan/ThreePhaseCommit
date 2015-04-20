@@ -2,8 +2,9 @@
 //////////////////////////////
 // ./commond -t trax.txt(master read) -h hostfile.txt -m masterid -p portnum
 //     0     1   2                    3   4           5     6     7    8    
-#define TRY 4
+
 #define ALLSIZE 6
+
 void ThreePC::mainLoop() {
 	if (myid == masterid) {  // this is master
 		// push the commitment to sending queue
@@ -18,12 +19,11 @@ void ThreePC::doMaster() {
 	//Tag *tag = new Tag(size, myid);  // used to record reply status
 	fd_set fdset;
 	bool ongoing = false; // every time there is only one outstanding commitment,
-	int AllneedtoSend = ALLSIZE;
-	int times = TRY;
 
 	struct timeval timeout = { 2, 0 };  // time for time out
 
 	while (true) {
+		testElection();
 		if (isTermination == false) { // normal 3pc protocol
 			if (ongoing == false && state == INIT) { // if sending queue is not empty and no outstanding msg pick one and send to all
 				char t = 0;
@@ -49,8 +49,6 @@ void ThreePC::doMaster() {
 				int type = recvMessage(p);
 				if (type == REPLY && state == WAIT) {
 					Reply *msg = (Reply *) p;
-					cout << "msg val " << msg->val << " value1x " << value
-							<< endl;
 					assert(value == msg->val);
 					if (msg->isyes == 1) {  // received a yes from cohort
 						int sender = msg->senderid;
@@ -75,8 +73,6 @@ void ThreePC::doMaster() {
 				} else if (type == ACK && state == PREP) {  // in PREP(prepare)
 
 					Ack *msg = (Ack *) p;
-					cout << "msg val " << msg->val << " value2x " << value
-							<< endl;
 					assert(value == msg->val);
 					int sender = msg->senderid;
 					tag->setTrue(sender);
@@ -91,8 +87,6 @@ void ThreePC::doMaster() {
 
 				} else if (type == HAVECMTED && state == CMT) {
 					HaveCommitted *msg = (HaveCommitted *) p;
-					cout << "msg val " << msg->val << " value3x " << value
-							<< endl;
 					assert(value == msg->val);
 					int sender = msg->senderid;
 					tag->setTrue(sender);
@@ -106,8 +100,6 @@ void ThreePC::doMaster() {
 					}
 				} else if (type == ABORTACK && state == ABRT) {
 					AbortAck *msg = (AbortAck *) p;
-					cout << "msg val " << msg->val << " value4x " << value
-							<< endl;
 					assert(value == msg->val);
 					int sender = msg->senderid;
 					tag->setTrue(sender);
@@ -160,7 +152,6 @@ void ThreePC::doMaster() {
 						state = ABRT;  // to do
 						deleteMsg(ABRT, abrt);
 						times = TRY;
-
 					}
 
 				} else if (state == CMT) {
@@ -203,16 +194,65 @@ void ThreePC::doMaster() {
 				}
 			}
 		} else {
+			// phase 1
+			// sends its state to other sites to make them transit to the state
+			if (!transited && state != CMT && state != ABRT) {
+				char *transit = mkMsg(TRANSIT, state, myid);
+				sendAllMsg(TRANSIT, transit);
+				deleteMsg(TRANSIT, transit);
+				transited = true;
+			}
+			if (state == CMT) { // no ACK will be needed
+				char *docomit = mkMsg(DOCMT, value, myid);
+				sendAllMsg(DOCMT, docomit);
+				state = CMT;  // set state to cmt
+				deleteMsg(DOCMT, docomit);
+				times = TRY;
+				isTermination = false;
+				continue;
+			}
+			if (state == ABRT) {
+				char *abrt = mkMsg(ABORT, value, myid);
+				sendAllMsg(ABORT, abrt);
+				state = ABRT;
+				deleteMsg(ABORT, abrt);
+				times = TRY;
+				isTermination = false;
+				continue;
+			}
 			FD_ZERO(&fdset);
 			FD_SET(sockfd, &fdset);
 			select(sockfd + 1, &fdset, NULL, NULL, &timeout);
 			if (FD_ISSET(sockfd, &fdset)) {
 				char *p = NULL;
 				int type = recvMessage(p);
-				Election *msg = (Election *) p;
+				Termination *msg = (Termination *) p;
 				int sender = msg->senderid;
-				if (type == REPLY && state == WAIT) { // TO-DO
+				tag->setTrue(sender);
+				if (type == ACK && tag->checkAllTrue()) { // we can send commit or abort now
+					if (state == CMT || state == PREP) {
+						char *docomit = mkMsg(DOCMT, msg->val, myid);
+						tag->setAlltoFalse();
+						sendAllMsg(DOCMT, docomit);
+						state = CMT;  // set state to cmt
+						deleteMsg(DOCMT, docomit);
+						times = TRY;
+						isTermination = false;
+					} else {
+						tag->setAlltoFalse();
+						char *abrt = mkMsg(ABORT, value, myid);
+						sendAllMsg(ABORT, abrt);
+						state = ABRT;
+						deleteMsg(ABORT, abrt);
+						times = TRY;
+						isTermination = false;
+					}
+				} else {
+					cout << "unexpected message type: " << type << "sender: "
+							<< sender << endl;
 				}
+			} else { // time out
+				cout << "time out in termination" << endl;
 			}
 		}
 	}
@@ -220,11 +260,12 @@ void ThreePC::doMaster() {
 
 void ThreePC::doSlave() {   ////////////////////////////
 	fd_set fdset;
-	// state = CMT;   // may result in problem
-	//----bool strategy[ALLSIZE] = {true, true, false, true, false, false}; // need to be read from a fil
-	//int stgyidx = -1;     ///////////-----------
+// state = CMT;   // may result in problem
+//----bool strategy[ALLSIZE] = {true, true, false, true, false, false}; // need to be read from a fil
+//int stgyidx = -1;     ///////////-----------
 	while (true) {
-		struct timeval timeout = { 1, 0 };  // time for time out
+		testElection();
+		struct timeval timeout = { 2, 0 };  // time for time out
 		FD_ZERO(&fdset);
 		FD_SET(sockfd, &fdset);
 
@@ -287,6 +328,7 @@ void ThreePC::doSlave() {   ////////////////////////////
 				state = ABRT;
 			} else if (type == INQUIRY) { // election anouncement
 				Election *msg = (Election *) p;
+				assert(9999 == msg->val);
 				if (myid > msg->senderid) { // Then we need to send iamalive
 					char *alive = mkMsg(ALIVE, 9999, myid);
 					sendMessage(ALIVE, alive, msg->senderid);
@@ -297,13 +339,30 @@ void ThreePC::doSlave() {   ////////////////////////////
 					sendAllMsg(INQUIRY, inquiry);
 					deleteMsg(INQUIRY, inquiry);
 					is_candidate = true;
+				} else {
+					// sleep(1000);
+					is_candidate = false;
 				}
 			} else if (type == ALIVE) { // wait for INQUIRY
+				Election *msg = (Election *) p;
+				assert(9999 == msg->val);
+				cout << "iamout" << endl;
+				//sleep(2000);  // wait for 2 seconds to see if there are inquiries coming from others
 				is_candidate = false;
-				continue; // if no INQUIRY shows up, it goes back to send inquiry
+				// continue; // if no INQUIRY shows up, it goes back to send inquiry
 			} else if (type == VICTORY) {
 				Election *msg = (Election *) p;
+				assert(9999 == msg->val);
 				masterid = msg->senderid;
+				cout << "masterid: " << masterid << endl;
+				//exit(1);
+			} else if (type == TRANSIT) {
+				Termination *msg = (Termination *) p;
+				cout << "new state: " << state << endl;
+				char *ack = mkMsg(ACK, value, myid);
+				sendMessage(ACK, ack, masterid);
+				deleteMsg(ACK, ack);
+				state = uintToState(msg->val);
 			} else {
 				// reply(type)
 				redundentReply(type, value, strategy[value]); ///////////++++++++++++
@@ -311,22 +370,30 @@ void ThreePC::doSlave() {   ////////////////////////////
 			}
 		} else { // time out
 			if ((state == WAIT || state == PREP) && is_candidate == false) { // re-election
-				char *inquiry = mkMsg(INQUIRY, 9999, myid);
-				sendAllMsg(INQUIRY, inquiry);
-				deleteMsg(INQUIRY, inquiry);
-				is_candidate = true;
+				if (times-- > 0) {
+				} else {
+					tag->siteDown(masterid);
+					cout << "inquiry" << endl;
+					char *inquiry = mkMsg(INQUIRY, 9999, myid);
+					sendAllMsg(INQUIRY, inquiry);
+					deleteMsg(INQUIRY, inquiry);
+					is_candidate = true;
+				}
 			} else if ((state == WAIT || state == PREP)
 					&& is_candidate == true) { // announce victory
+				cout << "victory" << endl;
 				char *victory = mkMsg(VICTORY, 9999, myid);
 				sendAllMsg(VICTORY, victory);
 				deleteMsg(VICTORY, victory);
 				masterid = myid;
 				// termination protocol
-				if (state == WAIT) { // NON-COMMITABLE
-					char *non = mkMsg(NONCOMMITTABLE, 9999, myid);
-					sendAllMsg(NONCOMMITTABLE, non);
-					deleteMsg(NONCOMMITTABLE, non);
-				}
+				isTermination = true;
+				doMaster();
+//				if (state == WAIT) { // NON-COMMITABLE
+//					char *non = mkMsg(NONCOMMITTABLE, 9999, myid);
+//					sendAllMsg(NONCOMMITTABLE, non);
+//					deleteMsg(NONCOMMITTABLE, non);
+//				}
 				// TO-DO
 				//sendAllMsg();
 				//doMaster();
@@ -348,7 +415,7 @@ int main(int argc, char *argv[]) {
 	int masterid = atoi(masteridstr);
 
 	ThreePC threepc(port, strategy, hostfile, masterid);
-	//process p(port, hostfile, count);
+//process p(port, hostfile, count);
 	threepc.mainLoop();
 	return 0;
 }

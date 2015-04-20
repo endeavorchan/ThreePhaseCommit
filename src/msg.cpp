@@ -1,8 +1,6 @@
 #include "msg.h"
 	
 MSG::MSG(char *msgport, char *hostfile){
-	//cout << "initial MSG " << endl;
-
 	struct sockaddr_in saddr;
 
   	setmyIp();
@@ -92,9 +90,16 @@ void MSG::sendMessage(int type, char *p, int dest_id){
 
   	} else if (type == ABORT) {
   		datasize = sizeof(Abort);
-
   	} else if (type == ABORTACK) {
   		datasize = sizeof(AbortAck);
+  	} else if (type == ALIVE) {
+  		datasize = sizeof(Election);
+  	} else if (type == VICTORY) {
+  		datasize = sizeof(Election);
+  	} else if (type == INQUIRY) {
+  		datasize = sizeof(Election);
+  	} else if (type == TRANSIT) {
+  		datasize = sizeof(Termination);
   	} else {
 		cout << "message content error\n";
 		fflush(stdout);
@@ -129,31 +134,32 @@ int  MSG::recvMessage(char *&pmsg){
 	uint32_t *ptype = (uint32_t *)buf;
 	pmsg = (char *)buf;
 	printMsg(R, pmsg);
-	if ((*ptype) == CANCMT) {
-		return CANCMT;
-		
-	} else if ((*ptype) == REPLY) {
-		return REPLY;
-
-	} else if ((*ptype) == PRECMT) {
-		return PRECMT;
-
-	} else if ((*ptype) == ACK) {
-		return ACK;
-	
-	} else if ((*ptype) == DOCMT) {
-		return DOCMT;
-
-	} else if ((*ptype) == HAVECMTED) {
-		return HAVECMTED;
-
-	} else if ((*ptype) == ABORT) {
-		return ABORT;
-	} else if ((*ptype) == ABORTACK) {
-		return ABORTACK;
-	} else {
-		cout << "received message error" << endl;
-		return -1;
-	}
-	return -1;
+	return *ptype;
+//	if ((*ptype) == CANCMT) {
+//		return CANCMT;
+//
+//	} else if ((*ptype) == REPLY) {
+//		return REPLY;
+//
+//	} else if ((*ptype) == PRECMT) {
+//		return PRECMT;
+//
+//	} else if ((*ptype) == ACK) {
+//		return ACK;
+//
+//	} else if ((*ptype) == DOCMT) {
+//		return DOCMT;
+//
+//	} else if ((*ptype) == HAVECMTED) {
+//		return HAVECMTED;
+//
+//	} else if ((*ptype) == ABORT) {
+//		return ABORT;
+//	} else if ((*ptype) == ABORTACK) {
+//		return ABORTACK;
+//	} else {
+//		cout << "received message error" << endl;
+//		return -1;
+//	}
+	//return -1;
 }

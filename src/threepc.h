@@ -26,12 +26,12 @@
 
 #ifndef THREEPC_H
 #define THREEPC_H
-
+#define TRY 4
 #include "msg.h"
 
 using namespace std;
 enum State {
-	INIT, WAIT, ABRT, CMT, PREP
+	INIT = 1, WAIT, ABRT, CMT, PREP
 };
 
 class ThreePC: public MSG {
@@ -40,11 +40,12 @@ class ThreePC: public MSG {
 	vector<int> strategy;    //++++++
 public:
 	int value;
+	int times;
 	// variables used by termination protocol
 	bool is_candidate;
 	bool isTermination;
-	int termi_status[];
-
+	int *termi_status;
+	bool transited;
 	ThreePC() {
 		init();
 	}
@@ -78,20 +79,33 @@ public:
 	void init() {
 		value = 0;
 		state = INIT;
+		times = TRY;
 		tag = new Tag(size, myid); // used to record reply status
 		isTermination = false;
 		is_candidate = false;
-		for (int i=0; i<this->size; i++) {
-			// TO-DO
+		transited = false;
+	}
+
+	State uintToState(uint32_t i){
+		if (i==1){
+			return INIT;
+		} else if (i==2){
+			return WAIT;
+		} else if (i==3){
+			return ABRT;
+		} else if (i==4){
+			return CMT;
+		} else if (i==5){
+			return PREP;
 		}
 	}
 
-	void mainLoop();
 
-	void doMaster();
-
-	void doSlave();
-
+	void testElection() { // simulate coordinator failure
+		if (state == PREP && myid == 1){
+			exit(1);
+		}
+	}
 	void redundentReply(int type, int val, bool isyes) {
 		int indicate = 0;
 		if (isyes)
@@ -129,6 +143,11 @@ public:
 		sendMessage(sendtype, msg, masterid);
 		deleteMsg(sendtype, msg);
 	}
+	void mainLoop();
+
+	void doMaster();
+
+	void doSlave();
 };
 
 #endif 

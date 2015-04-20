@@ -32,7 +32,8 @@ enum MsgType {
 	INQUIRY,
 	COMMITTABLE,
 	NONCOMMITTABLE,
-	TERMIABORT
+	TERMIABORT,
+	TRANSIT
 };
 enum {
 	A, C
@@ -81,7 +82,6 @@ typedef struct {
 	MsgType type;
 	uint32_t val;
 	uint32_t senderid;
-
 } HaveCommitted;
 
 typedef struct {
@@ -167,7 +167,7 @@ public:
 			}
 		}
 	}
-	int *getUnsetId() {  // get the id of the site which hasn't replied yet (re transmit)
+	int *getUnsetId() { // get the id of the site which hasn't replied yet (re transmit)
 		for (int i = 0; i < size; ++i) {
 			ids[i] = -1;
 			if (i != myid && tag[i] == false) {
@@ -188,7 +188,7 @@ public:
 	bool checkAllTrue() {
 		for (int i = 0; i < size; ++i) {
 			if (i != myid && tag[i] == false)
-				return false;
+			return false;
 		}
 		return true;
 	}
@@ -196,8 +196,8 @@ public:
 
 class MSG {
 public:
-	Tag *tag;// used to record reply status
-	int sockfd; // socked number
+	Tag *tag;  // used to record reply status
+	int sockfd;// socked number
 	uint16_t port;// port number
 	uint32_t ip;// ip number
 	char myipstr[INET_ADDRSTRLEN];// my ip in string format
@@ -206,7 +206,6 @@ public:
 	int myid;// my id
 	char sderipstr[INET_ADDRSTRLEN];// sender's ip in string format
 	MSG() {
-
 	}
 	MSG(char *, char *);
 	int getidbyIp(char *s) {
@@ -312,7 +311,7 @@ public:
 			case ALIVE: {
 				Election *msg = new Election;
 				msg->type = ALIVE;
-				msg->val = val;
+				msg->val = 9999;
 				msg->senderid = senderid;
 				ret = (char *)msg;
 				break;
@@ -320,7 +319,7 @@ public:
 			case VICTORY: {
 				Election *msg = new Election;
 				msg->type = VICTORY;
-				msg->val = val;
+				msg->val = 9999;
 				msg->senderid = senderid;
 				ret = (char *)msg;
 				break;
@@ -328,7 +327,7 @@ public:
 			case INQUIRY: {
 				Election *msg = new Election;
 				msg->type = INQUIRY;
-				msg->val = val;
+				msg->val = 9999;
 				msg->senderid = senderid;
 				ret = (char *)msg;
 				break;
@@ -352,6 +351,14 @@ public:
 			case TERMIABORT: {
 				Termination *msg = new Termination;
 				msg->type = TERMIABORT;
+				msg->val = val;
+				msg->senderid = senderid;
+				ret = (char *)msg;
+				break;
+			}
+			case TRANSIT: {
+				Termination *msg = new Termination;
+				msg->type = TRANSIT;
 				msg->val = val;
 				msg->senderid = senderid;
 				ret = (char *)msg;
@@ -415,7 +422,28 @@ public:
 				cout << "ABORTACK val: " << p->val << " senderid: " << p->senderid << endl;
 				break;
 
-			}default: {
+			}
+			case ALIVE: {
+				Election *p = (Election *)msg;
+				cout<< "ALIVE val: " << p->val << " senderid: " << p->senderid << endl;
+				break;
+			}
+			case VICTORY: {
+				Election *p = (Election *)msg;
+				cout<< "VICTORY val: " << p->val << " senderid: " << p->senderid << endl;
+				break;
+			}
+			case INQUIRY: {
+				Election *p = (Election *)msg;
+				cout<< "INQUIRY val: " << p->val << " senderid: " << p->senderid << endl;
+				break;
+			}
+			case TRANSIT: {
+				Election *p = (Election *)msg;
+				cout<< "TRANSIT val: " << p->val << " senderid: " << p->senderid << endl;
+				break;
+			}
+			default: {
 				cout << "msg error " << endl;
 				exit(1);
 			}
@@ -473,7 +501,18 @@ public:
 				AbortAck *p = (AbortAck *)msg;
 				delete p;
 				break;
-			}default: {
+			}
+			case ALIVE: case VICTORY: case INQUIRY: {
+				Election *p = (Election *)msg;
+				delete p;
+				break;
+			}
+			case TRANSIT: {
+				Termination *p = (Termination *)msg;
+				delete p;
+				break;
+			}
+			default: {
 				cout << "msg error can not delete " << endl;
 				exit(1);
 			}
