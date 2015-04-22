@@ -248,7 +248,7 @@ void ThreePC::doSlave() {   ////////////////////////////
 				assert(value <= (int)msg->val);  // this check may involve problem
 				value = msg->val; // update value;
 				char *reply = NULL;
-				cout << value << "ssize  " << strategy.size() << endl;
+				//cout << value << "ssize  " << strategy.size() << endl;
 				assert(value < strategy.size()); ////////////++++++++
 
 
