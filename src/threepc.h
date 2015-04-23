@@ -33,19 +33,26 @@ using namespace std;
 enum State {
 	INIT = 1, WAIT, ABRT, CMT, PREP
 };
+// test variables
 
 class ThreePC: public MSG {
 	State state;
 	int masterid;
-	vector<int> strategy;    //++++++
+	vector<int> strategy;
 public:
 	int value;
 	int times;
 	// variables used by termination protocol
 	bool is_candidate;
 	bool isTermination;
-	int *termi_status;
 	bool transited;
+	// varibles used for testing
+	bool TESTELECTION1;
+	bool TESTELECTION2;
+	bool TESTSUB;
+	bool TESTSLAVEDOWN1;
+	bool TESTSLAVEDOWN2;
+
 	ThreePC() {
 		init();
 	}
@@ -84,28 +91,33 @@ public:
 		isTermination = false;
 		is_candidate = false;
 		transited = false;
+		setTest();
 	}
 
-	State uintToState(uint32_t i){
-		if (i==1){
+	// This function can be modified to do different tests
+	// Set one variable to true,
+	// The corresponding test block will be executed
+	void setTest() {
+		TESTELECTION1 = false;
+		TESTELECTION2 = false;
+		TESTSUB = false;
+		TESTSLAVEDOWN1 = false;
+		TESTSLAVEDOWN2 = false;
+	}
+	State uintToState(uint32_t i) {
+		if (i==1) {
 			return INIT;
-		} else if (i==2){
+		} else if (i==2) {
 			return WAIT;
-		} else if (i==3){
+		} else if (i==3) {
 			return ABRT;
-		} else if (i==4){
+		} else if (i==4) {
 			return CMT;
-		} else if (i==5){
+		} else if (i==5) {
 			return PREP;
 		}
 	}
 
-
-	void testElection() { // simulate coordinator failure
-		if (state == PREP && myid == 1){
-			exit(1);
-		}
-	}
 	void redundentReply(int type, int val, bool isyes) {
 		int indicate = 0;
 		if (isyes)
@@ -145,9 +157,58 @@ public:
 	}
 	void mainLoop();
 
-	void doMaster();
+	void doMaster(bool ongo);
 
 	void doSlave();
+
+	// test functions
+	/*
+	 * coordinator fails at state WAIT
+	 */
+	void testElection1() {
+		if (state == WAIT && myid == 1) {
+			cout << "Crashed" << endl;
+			exit(1);
+		}
+	}
+	/*
+	 * coordinator fails at state PREP
+	 */
+	void testElection2() { // simulate coordinator failure
+		if (state == PREP && myid == 1) {
+			cout << "Crashed" << endl;
+			exit(1);
+		}
+	}
+	/*
+	 * coordinator fails at state PREP, then the newly elected coordinator fails at state PREP
+	 */
+	void testSubsequentFail() { // simulate coordinator failure
+		if (state == PREP && (myid == 1 || myid == 3)) {
+			cout << "Crashed" << endl;
+			exit(1);
+		}
+	}
+
+	/*
+	 * slave 0 fails when it receives CANCMT msg (asking for vote)
+	 */
+	void testSlaveDown1(int type) {
+		if (type == CANCMT && myid == 0) {
+			cout << "Crashed" << endl;
+			exit(1);
+		}
+	}
+
+	/*
+	 * slave 0 fails when it receives DOCMT msg (global commit)
+	 */
+	void testSlaveDown2(int type) {
+		if (type == DOCMT && myid == 0) {
+			cout << "Crashed" << endl;
+			exit(1);
+		}
+	}
 };
 
 #endif 

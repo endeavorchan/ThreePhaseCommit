@@ -131,6 +131,13 @@ public:
 			sessionv[i] = 1;  // 1 indicate the corresponding site is on
 		}
 	}
+	void printIds(){
+		cout<< "ids:" <<endl;
+		for (int i=0; i<size; i++){
+			cout<< ids[i];
+		}
+		cout<< endl;
+	}
 	void setsitedown() {
 		for (int i = 0; i < size; ++i) {
 			if (ids[i] != -1) {
